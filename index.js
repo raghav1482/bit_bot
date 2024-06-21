@@ -5,11 +5,37 @@ const express = require('express');
 require('dotenv').config();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
+const options = {
+  method: 'GET',
+  url: 'https://yt-api.p.rapidapi.com/channel/videos',
+  params: {
+    id: 'UCSkE1f1N3kBocAdzPdMHqOw',
+    forUsername: 'bitstalker'
+  },
+  headers: {
+    'x-rapidapi-key': `${process.env.RAPID_API_KEY}`,
+    'x-rapidapi-host': 'yt-api.p.rapidapi.com'
+  }
+};
+
+const getChannelData = async()=>{
+    try {
+        const response = await axios.request(options);
+        return response.data;
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 async function run(message) {
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+  if (message.endsWith('\n')) {
+    message = message.slice(0, -1);
+  }
   const result = await model.generateContent([
-    message.slice(0,-1)+' answer in MARKDOWN mode']
+    message+' answer in MARKDOWN mode']
   );
+  console.log(message);
   return result.response.text();
 }
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -21,10 +47,42 @@ bot.start(async (ctx) => {
 bot.hears(/hi|hello|hey|greetings/i, async (ctx) => {
     await ctx.reply('Hello! How can I assist you today?');
 });
+bot.hears(/ytchannel|channelupdate|bitstalkeryt/i, async (ctx) => {
+    const channel= await getChannelData();
+    const top5 = await channel.data?channel.data.slice(0,5):[]; 
+    for(i=0;i<top5.length;i++){
+        await ctx.reply(`<b>${top5[i].title}</b>\n<b>View Now 👉:"https://www.youtube.com/watch?v=${top5[i].videoId}"</b>`,{parse_mode:"HTML"});
+    }
+});
+
+bot.command('help', async (ctx) => {
+    const helpMessage = `
+<b>Available commands</b>:
+👉/start - Start the bot
+👉/help - Show this help message
+📹 /ytchannel - Fetch latest videos from Bitstalker's YouTube channel
+💬 Send a message in the format <b>"ASK AI: your_message"</b> to generate AI responses
+`;
+
+    await ctx.reply(helpMessage,{parse_mode:"HTML"});
+});
+;
+
 
 bot.on('message', async (ctx) => {
-    const ai_answer = await run(ctx.message.text);
-    await ctx.reply(ai_answer,{ parse_mode: 'Markdown' });
+    try{
+        const msg = ctx.message.text
+        if(msg.slice(0,7)==='ASK AI:'){
+            console.log(ctx.message.text);
+            const ai_answer = await run(ctx.message.text);
+            await ctx.reply(ai_answer,{ parse_mode: 'Markdown' });
+        }else{
+            await ctx.reply("Sorry i couldn't understand.");
+        }
+    }catch(e){
+        console.log(e);
+        await ctx.reply("Some error occurred. Please try again later.");
+    }
 });
 
 let usedIndexes = new Set();
