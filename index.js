@@ -1,8 +1,19 @@
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const express = require('express');
 require('dotenv').config();
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
+async function run(message) {
+    console.log("run entr")
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+  const result = await model.generateContent([
+    message.slice(0,-1)+' answer in MARKDOWN mode']
+  );
+  console.log(result.response.text());
+  return result.response.text();
+}
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 bot.start(async (ctx) => {
@@ -14,7 +25,8 @@ bot.hears(/hi|hello|hey|greetings/i, async (ctx) => {
 });
 
 bot.on('message', async (ctx) => {
-    await ctx.reply(`You said: ${ctx.message.text}`);
+    const ai_answer = await run(ctx.message.text);
+    await ctx.reply(ai_answer,{ parse_mode: 'Markdown' });
 });
 
 let usedIndexes = new Set();
