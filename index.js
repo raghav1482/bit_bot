@@ -1,5 +1,6 @@
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
+const express = require('express');
 require('dotenv').config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -20,13 +21,13 @@ async function fetchDataAndSendMessage() {
     try {
         const response = await axios.get('https://newsdata.io/api/1/news', {
             params: {
-                apikey: `${process.env.NEWS_API}`,
+                apikey: process.env.NEWS_API,
                 q: 'technology'
             }
         });
 
         const randIndex = response.data ? response.data.results : [];
-        
+
         if (randIndex.length > 0) {
             // Filter out used indexes
             const availableIndexes = randIndex
@@ -49,7 +50,7 @@ async function fetchDataAndSendMessage() {
             `;
 
             // Replace with the chat ID or use a specific user ID
-            const chatId = process.env.CHANNEL_ID; 
+            const chatId = process.env.CHANNEL_ID;
 
             await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML' });
         } else {
@@ -61,10 +62,36 @@ async function fetchDataAndSendMessage() {
     }
 }
 
-// Send data periodically (every 1000 seconds for testing purposes, adjust as needed)
-setInterval(fetchDataAndSendMessage, 3 * 60 * 60 * 1000); // 1000000 ms = 1000 seconds (adjust as needed for your actual interval)
+// Set up Express server
+const app = express();
+const PORT = process.env.PORT || 3000;
 
+app.get('/', (req, res) => {
+    res.send('Welcome to the Express server!');
+});
+
+// Endpoint to trigger sending news update
+app.get('/send-news-update', async (req, res) => {
+    await fetchDataAndSendMessage();
+    res.send('News update sent!');
+});
+
+// Send data periodically (every 3 hours)
+const intervalInMilliseconds = 3 * 60 * 60 * 1000;
+setInterval(fetchDataAndSendMessage, intervalInMilliseconds);
+
+// Launch bot and server
 bot.launch();
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => {
+    bot.stop('SIGINT');
+    process.exit();
+});
+
+process.once('SIGTERM', () => {
+    bot.stop('SIGTERM');
+    process.exit();
+});
