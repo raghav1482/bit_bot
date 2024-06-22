@@ -68,6 +68,39 @@ bot.hears(/ytchannel|channelupdate|bitstalkeryt/i, async (ctx) => {
     }
 });
 
+
+async function searchArticle(query) {
+    try {
+        const response = await axios.post('https://rgblogit.vercel.app/api/filter', {search_text:query});
+
+        const articles = response.data ? response.data : [];
+        if (articles.length > 0) {
+            let message = `<b>📰 Search Results for "${query}"</b>\n\n`;
+            articles.forEach(article => {
+                const desc = article.prompt.replace(/(<([^>]+)>)/gi, "").slice(0, 200);
+                message += `<b>Title:</b> ${article.title}\n<b>Description:</b> ${desc}...\n<b>Read more:</b> ${"https://rgblogit.vercel.app/post/"+article._id}\n\n`;
+            });
+
+            return message;
+        } else {
+            return `No articles found for "${query}".`;
+        }
+    } catch (error) {
+        console.error('Error fetching data from API:', error);
+        return 'An error occurred while searching for articles. Please try again later.';
+    }
+}
+
+bot.command('search_article', async (ctx) => {
+    const query = ctx.message.text.split(' ').slice(1).join(' ');
+    if (query) {
+        const searchResult = await searchArticle(query);
+        await ctx.reply(searchResult, { parse_mode: 'HTML' });
+    } else {
+        await ctx.reply('Please provide a search query.');
+    }
+});
+
 bot.command('help', async (ctx) => {
     const helpMessage = `
 <b>Available commands</b>:
