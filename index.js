@@ -6,22 +6,24 @@ require('dotenv').config();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 const options = {
-  method: 'GET',
-  url: 'https://yt-api.p.rapidapi.com/channel/videos',
-  params: {
-    id: 'UCSkE1f1N3kBocAdzPdMHqOw',
-    forUsername: 'bitstalker'
-  },
-  headers: {
-    'x-rapidapi-key': `${process.env.RAPID_API_KEY}`,
-    'x-rapidapi-host': 'yt-api.p.rapidapi.com'
-  }
-};
-
+    method: 'GET',
+    url: 'https://youtube-v31.p.rapidapi.com/search',
+    params: {
+      channelId: 'UCSkE1f1N3kBocAdzPdMHqOw',
+      part: 'snippet,id',
+      order: 'date',
+      maxResults: '5'
+    },
+    headers: {
+      'x-rapidapi-key': `${process.env.RAPID_API_KEY}`,
+      'x-rapidapi-host': 'youtube-v31.p.rapidapi.com'
+    }
+  };
 const getChannelData = async()=>{
     try {
         const response = await axios.request(options);
         return response.data;
+        // return response.items;
     } catch (error) {
         console.error(error);
     }
@@ -50,9 +52,9 @@ bot.hears(/hi|hello|hey|greetings/i, async (ctx) => {
 bot.hears(/ytchannel|channelupdate|bitstalkeryt/i, async (ctx) => {
     try{
         const channel= await getChannelData();
-        const top5 = await channel.data?channel.data.slice(0,5):[]; 
+        const top5 = await channel?channel.items:[]; 
         for(i=0;i<top5.length;i++){
-            await ctx.reply(`<b>${top5[i].title}</b>\n<b>View Now 👉:"https://www.youtube.com/watch?v=${top5[i].videoId}"</b>`,{parse_mode:"HTML"});
+            await ctx.reply(`<b>${top5[i].snippet.title}</b>\n<b>View Now 👉:"https://www.youtube.com/watch?v=${top5[i].id.videoId}"</b>`,{parse_mode:"HTML"});
         }
     }catch(e){
         console.log(e);
