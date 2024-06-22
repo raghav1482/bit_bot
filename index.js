@@ -18,7 +18,39 @@ const options = {
       'x-rapidapi-key': `${process.env.RAPID_API_KEY}`,
       'x-rapidapi-host': 'youtube-v31.p.rapidapi.com'
     }
-  };
+};
+
+const bot = new Telegraf(process.env.BOT_TOKEN);
+
+bot.start(async (ctx) => {
+    const msg= `<b>Welcome to BIT_BOT</b>\n
+    <b>Available commands</b>:
+👉/start - Start the bot
+👉/help - Show help message
+📹 /ytchannel - Fetch latest videos from Bitstalker's YouTube channel
+📰 /search_article [your search_text] - search relevant articles
+💬 Send a message in the format <b>"ASK AI: your_message"</b> to generate AI responses
+`
+    await ctx.reply(msg,{parse_mode:"HTML"});
+});
+
+bot.hears(/hi|hello|hey|greetings/i, async (ctx) => {
+    await ctx.reply('Hello! How can I assist you today?');
+});
+
+  bot.command('help', async (ctx) => {
+    const helpMessage = `
+<b>Available commands</b>:
+👉/start - Start the bot
+👉/help - Show this help message
+📹 /ytchannel - Fetch latest videos from Bitstalker's YouTube channel
+📰 /search_article [your search_text] - search relevant articles
+💬 Send a message in the format <b>"ASK AI: your_message"</b> to generate AI responses
+`;
+
+    await ctx.reply(helpMessage,{parse_mode:"HTML"});
+});
+;
 const getChannelData = async()=>{
     try {
         const response = await axios.request(options);
@@ -28,46 +60,6 @@ const getChannelData = async()=>{
         console.error(error);
     }
 }
-
-async function run(message) {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
-  if (message.endsWith('\n')) {
-    message = message.slice(0, -1);
-  }
-  const result = await model.generateContent([
-    message+' answer in MARKDOWN mode']
-  );
-  console.log(message);
-  return result.response.text();
-}
-const bot = new Telegraf(process.env.BOT_TOKEN);
-
-bot.start(async (ctx) => {
-    const msg= `<b>Welcome to BIT_BOT</b>\n
-    <b>Available commands</b>:
-👉/start - Start the bot
-👉/help - Show help message
-📹 /ytchannel - Fetch latest videos from Bitstalker's YouTube channel
-💬 Send a message in the format <b>"ASK AI: your_message"</b> to generate AI responses
-`
-    await ctx.reply(msg,{parse_mode:"HTML"});
-});
-
-bot.hears(/hi|hello|hey|greetings/i, async (ctx) => {
-    await ctx.reply('Hello! How can I assist you today?');
-});
-bot.hears(/ytchannel|channelupdate|bitstalkeryt/i, async (ctx) => {
-    try{
-        const channel= await getChannelData();
-        const top5 = await channel?channel.items:[]; 
-        for(i=0;i<top5.length;i++){
-            await ctx.reply(`<b>${top5[i].snippet.title}</b>\n<b>View Now 👉:"https://www.youtube.com/watch?v=${top5[i].id.videoId}"</b>`,{parse_mode:"HTML"});
-        }
-    }catch(e){
-        console.log(e);
-    }
-});
-
 
 async function searchArticle(query) {
     try {
@@ -91,6 +83,16 @@ async function searchArticle(query) {
     }
 }
 
+async function run(message) {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+  if (message.endsWith('\n')) {
+    message = message.slice(0, -1);
+  }
+  const result = await model.generateContent([
+    message+' answer in MARKDOWN mode']
+  );
+  return result.response.text();
+}
 bot.command('search_article', async (ctx) => {
     const query = ctx.message.text.split(' ').slice(1).join(' ');
     if (query) {
@@ -101,25 +103,24 @@ bot.command('search_article', async (ctx) => {
     }
 });
 
-bot.command('help', async (ctx) => {
-    const helpMessage = `
-<b>Available commands</b>:
-👉/start - Start the bot
-👉/help - Show this help message
-📹 /ytchannel - Fetch latest videos from Bitstalker's YouTube channel
-💬 Send a message in the format <b>"ASK AI: your_message"</b> to generate AI responses
-`;
-
-    await ctx.reply(helpMessage,{parse_mode:"HTML"});
+bot.hears(/ytchannel|channelupdate|bitstalkeryt/i, async (ctx) => {
+    try{
+        const channel= await getChannelData();
+        const top5 = await channel?channel.items:[]; 
+        for(i=0;i<top5.length;i++){
+            await ctx.reply(`<b>${top5[i].snippet.title}</b>\n<b>View Now 👉:"https://www.youtube.com/watch?v=${top5[i].id.videoId}"</b>`,{parse_mode:"HTML"});
+        }
+    }catch(e){
+        console.log(e);
+    }
 });
-;
+
 
 
 bot.on('message', async (ctx) => {
     try{
         const msg = ctx.message.text
         if(msg.slice(0,7)==='ASK AI:'){
-            console.log(ctx.message.text);
             const ai_answer = await run(ctx.message.text);
             await ctx.reply(ai_answer,{ parse_mode: 'Markdown' });
         }else{
