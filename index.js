@@ -48,10 +48,14 @@ bot.hears(/hi|hello|hey|greetings/i, async (ctx) => {
     await ctx.reply('Hello! How can I assist you today?');
 });
 bot.hears(/ytchannel|channelupdate|bitstalkeryt/i, async (ctx) => {
-    const channel= await getChannelData();
-    const top5 = await channel.data?channel.data.slice(0,5):[]; 
-    for(i=0;i<top5.length;i++){
-        await ctx.reply(`<b>${top5[i].title}</b>\n<b>View Now 👉:"https://www.youtube.com/watch?v=${top5[i].videoId}"</b>`,{parse_mode:"HTML"});
+    try{
+        const channel= await getChannelData();
+        const top5 = await channel.data?channel.data.slice(0,5):[]; 
+        for(i=0;i<top5.length;i++){
+            await ctx.reply(`<b>${top5[i].title}</b>\n<b>View Now 👉:"https://www.youtube.com/watch?v=${top5[i].videoId}"</b>`,{parse_mode:"HTML"});
+        }
+    }catch(e){
+        console.log(e);
     }
 });
 
