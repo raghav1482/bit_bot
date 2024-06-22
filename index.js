@@ -43,7 +43,14 @@ async function run(message) {
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 bot.start(async (ctx) => {
-    await ctx.reply('Welcome to BIT_BOT');
+    const msg= `<b>Welcome to BIT_BOT</b>\n
+    <b>Available commands</b>:
+👉/start - Start the bot
+👉/help - Show help message
+📹 /ytchannel - Fetch latest videos from Bitstalker's YouTube channel
+💬 Send a message in the format <b>"ASK AI: your_message"</b> to generate AI responses
+`
+    await ctx.reply(msg,{parse_mode:"HTML"});
 });
 
 bot.hears(/hi|hello|hey|greetings/i, async (ctx) => {
